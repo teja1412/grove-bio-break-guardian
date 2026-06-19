@@ -1,0 +1,39 @@
+Traceback (most recent call last):
+  File "C:\TEJA\bio-break-guardian\frontend\serve.py", line 24, in <module>
+    with socketserver.TCPServer(("0.0.0.0", PORT), Handler) as httpd:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\dharm\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 456, in __init__
+    self.server_bind()
+  File "C:\Users\dharm\AppData\Local\Programs\Python\Python311\Lib\socketserver.py", line 472, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [WinError 10048] Only one usage of each socket address (protocol/network address/port) is normally permitted
+Could not bind port 8080: [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions
+Port 8080 was unavailable, using 8081 instead.
+Open http://localhost:8081 in your browser.
+Grove frontend serving at http://0.0.0.0:8081
+127.0.0.1 - "GET / HTTP/1.1" 200 -
+127.0.0.1 - code 404, message File not found
+127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - "GET / HTTP/1.1" 200 -
+127.0.0.1 - code 404, message File not found
+127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+Could not bind port 8080: [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions
+Port 8080 was unavailable, using 8081 instead.
+Open http://localhost:8081 in your browser.
+Grove frontend serving at http://0.0.0.0:8081
+127.0.0.1 - "GET / HTTP/1.1" 200 -
+127.0.0.1 - code 404, message File not found
+127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - "GET / HTTP/1.1" 200 -
+127.0.0.1 - code 404, message File not found
+127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+Could not bind port 8080: [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions
+Port 8080 was unavailable, using 8081 instead.
+Open http://localhost:8081 in your browser.
+Grove frontend serving at http://0.0.0.0:8081
+127.0.0.1 - "GET / HTTP/1.1" 200 -
+Could not bind port 8080: [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions
+Port 8080 was unavailable, using 8081 instead.
+Open http://localhost:8081 in your browser.
+Grove frontend serving at http://0.0.0.0:8081
+127.0.0.1 - "GET / HTTP/1.1" 200 -

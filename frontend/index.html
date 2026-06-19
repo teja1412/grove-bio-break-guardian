@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grove — Bio-Break Guardian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --dusk-deep:#16241d; --dusk-mid:#1f342a; --dusk-rim:#2a4435;
+    --moss:#5c8c63; --moss-bright:#8fbf86; --moss-pale:#bcd9a9;
+    --amber:#e8b573; --amber-soft:#f0c98f;
+    --clay:#c97b53; --clay-deep:#8a4226;
+    --bone:#ece4d3; --bone-dim:#cfc6ae;
+    --bark:#4a3526;
+    --glass:rgba(236,228,211,0.06); --glass-strong:rgba(236,228,211,0.10);
+    --shadow:#00000055;
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; min-height:100%; font-family:'Inter',system-ui,sans-serif; color:var(--bone); overflow-x:hidden; }
+  body{
+    background: radial-gradient(60% 50% at 50% 0%, #2c4736 0%, transparent 60%),
+                linear-gradient(180deg, var(--dusk-deep) 0%, #101b15 70%, #0a120e 100%);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; position:relative;
+  }
+
+  /* ── Fireflies ── */
+  #fireflyLayer{ position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+  .firefly{
+    position:absolute; width:5px; height:5px; border-radius:50%;
+    background:var(--amber-soft);
+    box-shadow:0 0 8px 2px var(--amber-soft), 0 0 16px 4px rgba(232,181,115,0.35);
+    animation-name:driftGlow; animation-timing-function:ease-in-out; animation-iteration-count:infinite; opacity:0;
+  }
+  .firefly.golden{ background:#ffd700; box-shadow:0 0 10px 3px #ffd700, 0 0 20px 6px rgba(255,215,0,0.4); }
+  @keyframes driftGlow{
+    0%{ opacity:0; transform:translate(0,0); }
+    12%{ opacity:0.85; }
+    50%{ transform:translate(var(--dx,30px),var(--dy,-40px)); }
+    88%{ opacity:0.7; }
+    100%{ opacity:0; transform:translate(var(--dx2,-20px),var(--dy2,-90px)); }
+  }
+
+  /* ── Header ── */
+  header{ width:100%; text-align:center; padding:42px 16px 4px; z-index:2; }
+  header .eyebrow{ font-size:11.5px; letter-spacing:2.5px; text-transform:uppercase; color:var(--moss-bright); opacity:0.8; margin:0 0 10px; }
+  header h1{ margin:0; font-family:'Fraunces',serif; font-optical-sizing:auto; font-size:clamp(30px,6vw,42px); font-weight:500; color:var(--bone); }
+  header p{ margin:10px auto 0; max-width:420px; font-size:14px; color:var(--bone-dim); line-height:1.55; }
+
+  /* ── Stage ── */
+  #stage{ z-index:1; display:flex; flex-direction:column; align-items:center; width:100%; max-width:560px; padding:18px 20px 48px; }
+
+  /* ── Toast ── */
+  #achievementToast{
+    position:fixed; right:20px; bottom:20px; padding:14px 18px;
+    background:#24382d; border-radius:12px; border:1px solid #5c8c63;
+    display:none; z-index:200; color:white; font-size:13.5px; line-height:1.5;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  }
+  .achievement-item{
+    padding:10px 12px; margin-bottom:8px; background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08); border-radius:10px;
+    font-size:13px; color:var(--bone); display:flex; align-items:center; gap:8px;
+  }
+
+  /* ── Level-up celebration overlay ── */
+  #levelUpOverlay{
+    position:fixed; inset:0; z-index:150; display:none; align-items:center; justify-content:center;
+    background:rgba(8,18,10,0.82); backdrop-filter:blur(4px);
+  }
+  #levelUpCard{
+    text-align:center; padding:48px 36px 36px; border-radius:28px;
+    background:linear-gradient(160deg,#1c3024,#111e16); border:1px solid var(--moss);
+    box-shadow:0 24px 60px #000000cc; max-width:340px; width:100%;
+    animation:popIn 0.45s cubic-bezier(.34,1.56,.64,1);
+  }
+  #levelUpIcon{ font-size:56px; display:block; margin-bottom:14px; }
+  #levelUpTitle{ font-family:'Fraunces',serif; font-size:28px; font-weight:500; color:var(--moss-bright); margin:0 0 8px; }
+  #levelUpSub{ font-size:14px; color:var(--bone-dim); line-height:1.6; margin:0 0 24px; }
+  #levelUpParticles{ position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:28px; }
+  .lvl-particle{
+    position:absolute; width:6px; height:6px; border-radius:50%;
+    animation:lvlParticle 1.2s ease-out forwards;
+  }
+  @keyframes lvlParticle{
+    0%{ opacity:1; transform:translate(0,0) scale(1); }
+    100%{ opacity:0; transform:translate(var(--px),var(--py)) scale(0.3); }
+  }
+
+  /* ── SVG Clock ── */
+  #clockWrap{ position:relative; width:340px; height:340px; margin:22px auto 10px; }
+  #clockSvg{ width:100%; height:100%; display:block; filter:drop-shadow(0 18px 36px var(--shadow)); }
+
+  .tree-canopy{ transition:fill 1.6s ease, opacity 1.6s ease; }
+  .tree-trunk{ transition:fill 1.6s ease; }
+
+  /* Health moods */
+  #healthState[data-mood="thriving"] .tree-canopy{ fill:var(--moss); }
+  #healthState[data-mood="thriving"] .tree-canopy.light{ fill:var(--moss-bright); }
+  #healthState[data-mood="thriving"] #canopyGroup{ animation:breathe 8s ease-in-out infinite; }
+  #healthState[data-mood="warning"] .tree-canopy{ fill:#a98a4a; }
+  #healthState[data-mood="warning"] .tree-canopy.light{ fill:#bfa063; }
+  #healthState[data-mood="danger"] .tree-canopy{ fill:var(--clay); opacity:0.88; }
+  #healthState[data-mood="danger"] .tree-canopy.light{ fill:#d4906a; opacity:0.88; }
+  #healthState[data-mood="critical"] .tree-canopy{ fill:var(--clay-deep); opacity:0.78; }
+  #healthState[data-mood="critical"] .tree-canopy.light{ fill:#6b3520; opacity:0.78; }
+  #healthState[data-mood="resting"] .tree-canopy{ fill:#3f5a45; opacity:0.55; }
+  #healthState[data-mood="resting"] .tree-canopy.light{ fill:#4d6c50; opacity:0.55; }
+  #healthState[data-mood="idle"] .tree-canopy{ fill:#6a7a5f; opacity:0.65; }
+  #healthState[data-mood="idle"] .tree-canopy.light{ fill:#7c8c6c; opacity:0.65; }
+
+  /* Health = real visual consequence: fallen leaves & bare branches */
+  #leafFall{ display:none; }
+  #healthState[data-mood="danger"] #leafFall,
+  #healthState[data-mood="critical"] #leafFall{ display:block; }
+  @keyframes leafDrop{
+    0%{ opacity:0.9; transform:translate(0,0) rotate(0deg); }
+    100%{ opacity:0; transform:translate(var(--lx,8px), 40px) rotate(var(--lr,25deg)); }
+  }
+  .falling-leaf{ animation:leafDrop 2.2s ease-in infinite; }
+  .falling-leaf.l2{ animation-delay:0.7s; animation-duration:2.8s; }
+  .falling-leaf.l3{ animation-delay:1.4s; animation-duration:2.0s; }
+
+  @keyframes breathe{ 0%,100%{ transform:scale(1); } 45%{ transform:scale(1.035); } 55%{ transform:scale(1.035); } }
+  .sway{ transform-box:fill-box; transform-origin:50% 100%; animation:sway 5s ease-in-out infinite; }
+  .sway.s2{ animation-duration:6.2s; animation-delay:-1.4s; }
+  .sway.s3{ animation-duration:4.4s; animation-delay:-2.6s; }
+  @keyframes sway{ 0%,100%{ transform:rotate(-1.2deg); } 50%{ transform:rotate(1.4deg); } }
+
+  .tree-flower{ transition:opacity 1s ease; }
+  @keyframes goldenShimmer{ 0%,100%{ opacity:0.7; } 50%{ opacity:1; } }
+  .golden-leaf{ animation:goldenShimmer 2.4s ease-in-out infinite; }
+
+  #ringProgress{ transition:stroke-dashoffset 1s linear, stroke 1.2s ease; }
+  #timeReadout{ font-size:32px; font-weight:500; fill:var(--bone); font-family:'Fraunces',serif; }
+  #phaseLabel{ font-size:11.5px; fill:var(--moss-pale); letter-spacing:1.6px; font-family:'Inter',sans-serif; }
+  #levelBadge{ font-size:11px; fill:var(--amber-soft); font-family:'Inter',sans-serif; letter-spacing:1px; opacity:0.85; }
+
+  /* ── Status pill ── */
+  #statusPill{
+    display:inline-flex; align-items:center; gap:9px;
+    background:var(--glass-strong); border:1px solid rgba(236,228,211,0.14); border-radius:999px;
+    padding:8px 18px; font-size:13px; color:var(--bone); margin-top:6px;
+    backdrop-filter:blur(6px);
+  }
+  #statusDot{ width:9px; height:9px; border-radius:50%; background:var(--moss); transition:background 0.6s; box-shadow:0 0 6px 1px currentColor; }
+
+  /* ── Stats strip ── */
+  #statsStrip{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; font-size:12px; color:var(--bone-dim); margin-top:14px; }
+  #statsStrip .stat{ display:flex; align-items:baseline; gap:5px; }
+  #statsStrip .stat b{ font-family:'Fraunces',serif; font-size:16px; color:var(--moss-bright); font-weight:500; }
+  /* Health icon beside value — changes with mood */
+  #healthIcon{ font-size:13px; }
+
+  /* ── Streak banner ── */
+  #streakBanner{
+    display:none; align-items:center; gap:8px; margin-top:12px;
+    background:rgba(232,181,115,0.12); border:1px solid rgba(232,181,115,0.25); border-radius:10px;
+    padding:9px 16px; font-size:13px; color:var(--amber-soft);
+  }
+  #streakBanner.visible{ display:flex; }
+  #streakBanner b{ font-family:'Fraunces',serif; font-size:18px; }
+
+  /* ── Today summary card ── */
+  #todaySummary{
+    width:100%; background:var(--glass); border:1px solid rgba(236,228,211,0.10);
+    border-radius:18px; padding:18px 24px; margin-top:20px; backdrop-filter:blur(8px);
+  }
+  #todaySummary h2{ margin:0 0 12px; font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--bone); }
+  .summary-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .summary-cell{ background:rgba(255,255,255,0.04); border-radius:10px; padding:12px 14px; }
+  .summary-cell .label{ font-size:11px; color:var(--bone-dim); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:4px; }
+  .summary-cell .val{ font-family:'Fraunces',serif; font-size:22px; color:var(--moss-bright); font-weight:500; }
+  .summary-cell .val span{ font-size:12px; color:var(--bone-dim); font-family:'Inter',sans-serif; font-weight:400; }
+
+  /* ── Cards ── */
+  .card{ width:100%; background:var(--glass); border:1px solid rgba(236,228,211,0.10); border-radius:18px; padding:22px 24px; margin-top:20px; backdrop-filter:blur(8px); }
+  .card h2{ margin:0 0 14px; font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--bone); letter-spacing:0.2px; }
+  .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  select, input[type=time]{ font-size:14.5px; padding:9px 12px; border-radius:10px; border:1px solid rgba(236,228,211,0.18); background:rgba(15,20,16,0.5); color:var(--bone); font-family:inherit; }
+  select option{ background:var(--dusk-deep); color:var(--bone); }
+  button{ font-size:13.5px; font-weight:600; padding:10px 18px; border-radius:10px; border:none; cursor:pointer; transition:transform 0.15s ease, opacity 0.2s, background 0.2s; font-family:'Inter',sans-serif; }
+  button:active{ transform:scale(0.96); }
+  button.primary{ background:var(--moss); color:#0f1a12; }
+  button.primary:hover{ background:var(--moss-bright); }
+  button.ghost{ background:transparent; color:var(--bone); border:1px solid rgba(236,228,211,0.22); }
+  button.ghost:hover{ background:rgba(236,228,211,0.08); }
+  button:disabled{ opacity:0.4; cursor:not-allowed; }
+  .hint{ font-size:12.5px; color:var(--bone-dim); margin-top:12px; line-height:1.6; }
+  label.toggle{ font-size:13.5px; display:flex; align-items:center; gap:8px; color:var(--bone); }
+  label.toggle input{ width:16px; height:16px; accent-color:var(--moss); }
+
+  /* ── Main overlay (break / welcome) ── */
+  #overlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,9,0.72); z-index:50; padding:20px; backdrop-filter:blur(3px); }
+  #overlayCard{ width:100%; max-width:420px; border-radius:22px; padding:36px 30px 28px; text-align:center; box-shadow:0 18px 50px #000000aa; animation:popIn 0.4s ease; }
+  @keyframes popIn{ from{ transform:scale(0.9); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  #overlayCard.danger{ background:linear-gradient(165deg,#2a1c14,#1c130d); border:1px solid var(--clay); }
+  #overlayCard.safe{ background:linear-gradient(165deg,#1c2c1f,#142019); border:1px solid var(--moss); }
+  #overlayIcon{ font-size:42px; display:block; margin-bottom:12px; }
+  #overlayTitle{ font-family:'Fraunces',serif; font-size:22px; font-weight:500; margin:0 0 10px; }
+  #overlayCard.danger #overlayTitle{ color:var(--amber-soft); }
+  #overlayCard.safe #overlayTitle{ color:var(--moss-bright); }
+  #overlayBody{ font-size:14.5px; line-height:1.6; color:var(--bone-dim); margin:0 0 10px; }
+  /* Actionable break instructions */
+  #overlayActions{ font-size:13px; color:var(--moss-pale); line-height:1.8; margin:0 0 20px; padding:10px 14px; background:rgba(92,140,99,0.1); border-radius:10px; border:1px solid rgba(92,140,99,0.18); text-align:left; display:none; }
+  #overlayCard.danger #overlayActions{ display:block; }
+  #overlayCard.danger button.primary{ background:var(--clay); color:#1c0f08; }
+  #overlayCard.danger button.primary:hover{ background:#d8895f; }
+  #snoozeRow{ margin-top:10px; display:flex; justify-content:center; gap:10px; }
+  #snoozeHint{ font-size:11.5px; color:var(--bone-dim); margin-top:8px; opacity:0.85; }
+
+  footer{ font-size:11.5px; color:var(--bone-dim); opacity:0.7; padding:12px 0 30px; z-index:2; text-align:center; }
+
+  @media (max-width:420px){ #clockWrap{ width:280px; height:280px; } .summary-grid{ grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion:reduce){ .sway, #canopyGroup, .firefly, .golden-leaf, .falling-leaf, .lvl-particle{ animation:none !important; } }
+</style>
+</head>
+<body>
+
+<!-- ARIA live region for screen readers -->
+<div id="ariaLive" aria-live="polite" aria-atomic="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);"></div>
+
+<div id="achievementToast" role="status" aria-live="assertive"></div>
+<div id="fireflyLayer" aria-hidden="true"></div>
+
+<!-- Level-up celebration overlay -->
+<div id="levelUpOverlay" role="dialog" aria-modal="true" aria-labelledby="levelUpTitle">
+  <div id="levelUpCard" style="position:relative;">
+    <div id="levelUpParticles" aria-hidden="true"></div>
+    <span id="levelUpIcon" aria-hidden="true">🌳</span>
+    <h2 id="levelUpTitle">Level Up!</h2>
+    <p id="levelUpSub">Your grove grows stronger.</p>
+    <button class="primary" id="levelUpOkBtn" type="button">Keep growing</button>
+  </div>
+</div>
+
+<header>
+  <p class="eyebrow">Bio-Break Guardian</p>
+  <h1>Grove</h1>
+  <p>A living rhythm for your body — every 30 minutes, the grove asks you to step away.</p>
+</header>
+
+<div id="stage">
+
+  <div id="clockWrap" role="timer" aria-label="Focus countdown">
+    <svg id="clockSvg" viewBox="0 0 340 340" aria-hidden="true">
+      <defs>
+        <radialGradient id="canopyShade" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="goldenShade" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <circle cx="170" cy="170" r="158" fill="none" stroke="#3d2c1f" stroke-width="22"/>
+      <circle cx="170" cy="170" r="158" fill="none" stroke="#2c1f15" stroke-width="22" stroke-dasharray="2 7" opacity="0.5"/>
+      <circle cx="170" cy="170" r="147" fill="none" stroke="#1a120c" stroke-width="2" opacity="0.5"/>
+      <g stroke="#1a120c" stroke-width="2" opacity="0.5">
+        <path d="M170 12 l4 14 M170 12 l-4 14"/>
+        <path d="M328 170 l-14 4 M328 170 l-14 -4"/>
+        <path d="M170 328 l4 -14 M170 328 l-4 -14"/>
+        <path d="M12 170 l14 4 M12 170 l14 -4"/>
+      </g>
+      <circle cx="170" cy="170" r="143" fill="#15211a"/>
+      <circle id="ringTrack" cx="170" cy="170" r="124" fill="none" stroke="#26392c" stroke-width="10"/>
+      <circle id="ringProgress" cx="170" cy="170" r="124" fill="none" stroke="#5c8c63" stroke-width="10"
+              stroke-linecap="round" transform="rotate(-90 170 170)"
+              stroke-dasharray="779" stroke-dashoffset="0"/>
+
+      <ellipse cx="170" cy="262" rx="92" ry="14" fill="#0d150f" opacity="0.6"/>
+
+      <g id="healthState" data-mood="thriving" data-level="1">
+        <rect id="treeTrunk" class="tree-trunk" x="160" y="190" width="20" height="68" rx="6" fill="var(--bark)"/>
+
+        <g id="canopyGroup">
+          <g class="sway">
+            <ellipse id="canopyBase" class="tree-canopy" cx="170" cy="150" rx="68" ry="54"/>
+          </g>
+          <g class="sway s2">
+            <ellipse id="canopyL" class="tree-canopy light" cx="135" cy="170" rx="40" ry="32"/>
+          </g>
+          <g class="sway s3">
+            <ellipse id="canopyR" class="tree-canopy light" cx="205" cy="168" rx="42" ry="34"/>
+          </g>
+          <ellipse cx="170" cy="150" rx="68" ry="54" fill="url(#canopyShade)"/>
+
+          <!-- Level 2+: extra top cluster -->
+          <g id="lvl2Extra" style="display:none">
+            <g class="sway s2"><ellipse class="tree-canopy" cx="170" cy="118" rx="46" ry="36"/></g>
+          </g>
+
+          <!-- Level 4+: flowers -->
+          <g id="lvl4Flowers" style="display:none">
+            <circle class="tree-flower" cx="148" cy="138" r="5" fill="#f0c98f" opacity="0.9"/>
+            <circle class="tree-flower" cx="192" cy="132" r="4" fill="#f0c98f" opacity="0.85"/>
+            <circle class="tree-flower" cx="170" cy="124" r="5" fill="#f0c98f" opacity="0.9"/>
+            <circle class="tree-flower" cx="135" cy="155" r="4" fill="#e8b573" opacity="0.8"/>
+            <circle class="tree-flower" cx="207" cy="152" r="4" fill="#e8b573" opacity="0.8"/>
+          </g>
+
+          <!-- Level 6+: golden leaves -->
+          <g id="lvl6Golden" style="display:none">
+            <ellipse class="golden-leaf" cx="155" cy="135" rx="14" ry="9" fill="#d4a847" opacity="0.75"/>
+            <ellipse class="golden-leaf" cx="188" cy="130" rx="12" ry="8" fill="#d4a847" opacity="0.7" style="animation-delay:-0.8s"/>
+            <ellipse class="golden-leaf" cx="170" cy="122" rx="16" ry="10" fill="#c8941e" opacity="0.8" style="animation-delay:-1.6s"/>
+            <ellipse cx="170" cy="130" rx="66" ry="52" fill="url(#goldenShade)" opacity="0.4"/>
+          </g>
+
+          <!-- Health consequence: falling leaves (danger / critical) -->
+          <g id="leafFall">
+            <ellipse class="falling-leaf" cx="148" cy="155" rx="8" ry="5" fill="#8a4226" opacity="0.7"
+              style="--lx:12px;--lr:30deg;"/>
+            <ellipse class="falling-leaf l2" cx="192" cy="148" rx="7" ry="4" fill="#6b3520" opacity="0.65"
+              style="--lx:-10px;--lr:-20deg;"/>
+            <ellipse class="falling-leaf l3" cx="170" cy="140" rx="9" ry="5" fill="#7a3c1e" opacity="0.6"
+              style="--lx:6px;--lr:15deg;"/>
+          </g>
+        </g>
+      </g>
+
+      <text id="timeReadout" x="170" y="291" text-anchor="middle">--:--</text>
+      <text id="phaseLabel" x="170" y="305" text-anchor="middle">SET A START TIME</text>
+      <text id="levelBadge" x="170" y="319" text-anchor="middle"></text>
+    </svg>
+  </div>
+
+  <!-- Status pill -->
+  <div id="statusPill" role="status" aria-live="polite">
+    <span id="statusDot" aria-hidden="true"></span>
+    <span id="statusText">Grove is resting</span>
+  </div>
+
+  <!-- Stats strip -->
+  <div id="statsStrip" aria-label="Today's stats">
+    <span class="stat"><b id="statSnoozes">0</b>snoozes</span>
+    <span class="stat"><b id="statIdle">0</b>idle mins</span>
+    <span class="stat"><b id="statLevel">1</b>level</span>
+    <span class="stat"><b id="statXP">0</b>xp</span>
+    <span class="stat">
+      <b id="statHealth">100</b>
+      <span id="healthIcon" aria-label="health status">🌱</span>
+    </span>
+    <span class="stat"><b id="statBreaks">0</b>cycles</span>
+  </div>
+
+  <!-- Streak banner -->
+  <div id="streakBanner" role="status" aria-label="Current streak">
+    🔥 <b id="streakDays">0</b> day streak &nbsp;·&nbsp; best: <span id="streakBest">0</span> days
+  </div>
+
+  <p class="hint" style="text-align:center; margin-top:10px; max-width:420px;">
+    Tree health decreases when breaks are ignored. Completing breaks restores health and earns XP — levelling up your tree as it grows.
+  </p>
+
+  <!-- Today summary -->
+  <div id="todaySummary">
+    <h2>Today</h2>
+    <div class="summary-grid">
+      <div class="summary-cell">
+        <div class="label">Cycles</div>
+        <div class="val" id="sumCycles">0</div>
+      </div>
+      <div class="summary-cell">
+        <div class="label">Focus time</div>
+        <div class="val" id="sumFocus">0 <span>min</span></div>
+      </div>
+      <div class="summary-cell">
+        <div class="label">Breaks taken</div>
+        <div class="val" id="sumBreaks">0</div>
+      </div>
+      <div class="summary-cell">
+        <div class="label">Snoozes used</div>
+        <div class="val" id="sumSnoozes">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Achievements -->
+  <div class="card">
+    <h2>Achievements</h2>
+    <div id="achievementContainer">No achievements yet.</div>
+  </div>
+
+  <!-- Start card -->
+  <div class="card">
+    <h2>Begin a focus session</h2>
+    <div class="row">
+      <input type="time" id="startTime" aria-label="Session start time"/>
+      <button class="ghost" id="useNowBtn" type="button">Use current time</button>
+    </div>
+    <div class="row" style="margin-top:14px;">
+      <button class="primary" id="startBtn" type="button">Start focus session</button>
+      <button class="ghost" id="stopBtn" type="button" disabled>Stop</button>
+    </div>
+    <p class="hint">
+      Pick the time you began working (or tap "use current time"). The grove counts 30 minutes of focus,
+      then asks you to step away for 10 minutes. Cycles repeat automatically.
+    </p>
+  </div>
+
+  <!-- Settings card -->
+  <div class="card">
+    <h2>Presence &amp; alerts</h2>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="voiceToggle" checked> Speak alerts aloud</label>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <label class="toggle"><input type="checkbox" id="idleToggle" checked> Pause focus timer when I step away</label>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <label class="toggle"><input type="checkbox" id="notifyToggle"> Desktop notifications when tab isn't focused</label>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button class="ghost" id="testVoiceBtn" type="button">Test voice</button>
+      <select id="voiceSelect" style="flex:1; min-width:160px;" aria-label="Voice selection"></select>
+    </div>
+    <p class="hint" id="voiceHint">Choosing a soft, calm voice if your browser provides one.</p>
+    <p class="hint">If there's no mouse or keyboard activity for 90 seconds during focus time, the countdown pauses — so stepping away to grab water doesn't quietly burn your 30 minutes.</p>
+  </div>
+
+</div>
+
+<footer>Grove — your wellbeing, mirrored in nature. Cycles completed: <span id="cycleCount">0</span></footer>
+
+<!-- Break / welcome overlay -->
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+  <div id="overlayCard" class="danger">
+    <span id="overlayIcon" aria-hidden="true">🍂</span>
+    <h3 id="overlayTitle">The grove is wilting</h3>
+    <p id="overlayBody">30 minutes have passed. Your body and the grove both need a pause.</p>
+    <!-- Actionable break instructions (shown in danger mode) -->
+    <div id="overlayActions" aria-label="Suggested break activities">
+      ✦ Stand up and move for 2–5 minutes<br>
+      ✦ Drink a glass of water<br>
+      ✦ Rest your eyes — look at something far away
+    </div>
+    <button class="primary" id="acceptBreakBtn" type="button">I accept — starting my break</button>
+    <div id="snoozeRow">
+      <button class="ghost" id="snoozeBtn" type="button">Snooze 2 min</button>
+    </div>
+    <p id="snoozeHint"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  // ─── Colour constants ───────────────────────────────────────────────────────
+  const COLORS = {
+    thriving:'#5c8c63', warning:'#e8b573', danger:'#c97b53',
+    critical:'#8a4226', idle:'#8a9c78', resting:'#6a7a5c',
+  };
+
+  // Health → icon & aria label  (Problem 1: non-color health indicators)
+  const HEALTH_ICONS = {
+    thriving:['🌱','Healthy'],
+    warning :['⚠️','Warning — health declining'],
+    danger  :['🍂','Critical — tree is suffering'],
+    critical:['💀','Danger — tree near death'],
+    resting :['🌙','Resting'],
+    idle    :['⏸','Paused'],
+  };
+
+  // ─── Firefly layer ──────────────────────────────────────────────────────────
+  const fireflyLayer = document.getElementById('fireflyLayer');
+  let fireflyCount = 16;
+  let fireflyEls   = [];
+
+  // Problem 4: add/remove only the difference instead of full re-render
+  function updateFireflyCount(targetCount, useGolden){
+    if(targetCount === fireflyCount && !useGolden) return;
+
+    // Add missing
+    while(fireflyEls.length < targetCount){
+      const el = document.createElement('div');
+      const isGolden = useGolden && fireflyEls.length < Math.floor(targetCount * 0.35);
+      el.className = 'firefly' + (isGolden ? ' golden' : '');
+      el.style.left = (Math.random()*100)+'vw';
+      el.style.top  = (40+Math.random()*55)+'vh';
+      el.style.setProperty('--dx',  (Math.random()*60-30)+'px');
+      el.style.setProperty('--dy',  (-(30+Math.random()*40))+'px');
+      el.style.setProperty('--dx2', (Math.random()*60-30)+'px');
+      el.style.setProperty('--dy2', (-(80+Math.random()*60))+'px');
+      el.style.animationDuration = (9+Math.random()*10)+'s';
+      el.style.animationDelay   = (-Math.random()*16)+'s';
+      fireflyLayer.appendChild(el);
+      fireflyEls.push(el);
+    }
+    // Remove excess
+    while(fireflyEls.length > targetCount){
+      const el = fireflyEls.pop();
+      el.remove();
+    }
+    fireflyCount = targetCount;
+  }
+  updateFireflyCount(16, false);
+
+  // ─── DOM refs ───────────────────────────────────────────────────────────────
+  const ringProgress   = document.getElementById('ringProgress');
+  const RING_CIRC      = 2 * Math.PI * 124;
+  const timeReadout    = document.getElementById('timeReadout');
+  const phaseLabel     = document.getElementById('phaseLabel');
+  const levelBadge     = document.getElementById('levelBadge');
+  const statusDot      = document.getElementById('statusDot');
+  const statusText     = document.getElementById('statusText');
+  const healthState    = document.getElementById('healthState');
+  const healthIcon     = document.getElementById('healthIcon');
+  const cycleCount     = document.getElementById('cycleCount');
+  const startBtn       = document.getElementById('startBtn');
+  const stopBtn        = document.getElementById('stopBtn');
+  const startTimeInput = document.getElementById('startTime');
+  const useNowBtn      = document.getElementById('useNowBtn');
+  const overlay        = document.getElementById('overlay');
+  const overlayCard    = document.getElementById('overlayCard');
+  const overlayIcon    = document.getElementById('overlayIcon');
+  const overlayTitle   = document.getElementById('overlayTitle');
+  const overlayBody    = document.getElementById('overlayBody');
+  const acceptBreakBtn = document.getElementById('acceptBreakBtn');
+  const snoozeBtn      = document.getElementById('snoozeBtn');
+  const snoozeRow      = document.getElementById('snoozeRow');
+  const snoozeHint     = document.getElementById('snoozeHint');
+  const voiceToggle    = document.getElementById('voiceToggle');
+  const idleToggle     = document.getElementById('idleToggle');
+  const notifyToggle   = document.getElementById('notifyToggle');
+  const voiceSelect    = document.getElementById('voiceSelect');
+  const testVoiceBtn   = document.getElementById('testVoiceBtn');
+  const voiceHint      = document.getElementById('voiceHint');
+  const statBreaks     = document.getElementById('statBreaks');
+  const statSnoozes    = document.getElementById('statSnoozes');
+  const statIdle       = document.getElementById('statIdle');
+  const statLevel      = document.getElementById('statLevel');
+  const statXP         = document.getElementById('statXP');
+  const statHealth     = document.getElementById('statHealth');
+  const streakBanner   = document.getElementById('streakBanner');
+  const streakDays     = document.getElementById('streakDays');
+  const streakBest     = document.getElementById('streakBest');
+  const sumCycles      = document.getElementById('sumCycles');
+  const sumFocus       = document.getElementById('sumFocus');
+  const sumBreaks      = document.getElementById('sumBreaks');
+  const sumSnoozes     = document.getElementById('sumSnoozes');
+  const ariaLive       = document.getElementById('ariaLive');
+  const lvl2Extra      = document.getElementById('lvl2Extra');
+  const lvl4Flowers    = document.getElementById('lvl4Flowers');
+  const lvl6Golden     = document.getElementById('lvl6Golden');
+
+  const MAX_SNOOZES    = 3;
+  const IDLE_TIMEOUT   = 90000;
+
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+  const pad = n => n.toString().padStart(2,'0');
+  const fmt = s => { s = Math.max(0,Math.round(s)); return pad(Math.floor(s/60))+':'+pad(s%60); };
+  const nowHHMM = () => { const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+
+  startTimeInput.value = nowHHMM();
+  useNowBtn.addEventListener('click', () => startTimeInput.value = nowHHMM());
+
+  function announceAria(text){ ariaLive.textContent = ''; setTimeout(()=>{ ariaLive.textContent = text; }, 50); }
+
+  // ─── WebSocket ref ──────────────────────────────────────────────────────────
+  let ws;
+  const getWs = () => ws;
+
+  // ─── Voice ──────────────────────────────────────────────────────────────────
+  let chosenVoice = null;
+
+  function pickFemaleVoice(){
+    const voices = speechSynthesis.getVoices();
+    if(!voices.length) return null;
+    const prefs = ['Samantha','Google US English','Victoria','Karen','Moira','Tessa','Female','Zira','Susan','Fiona'];
+    return voices.find(v => prefs.some(n=>v.name.includes(n)))
+        || voices.find(v => /female/i.test(v.name))
+        || voices.find(v => v.lang && v.lang.startsWith('en'))
+        || voices[0];
+  }
+
+  function populateVoiceList(){
+    const voices = speechSynthesis.getVoices();
+    voiceSelect.innerHTML = '';
+    voices.forEach((v,i) => {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = v.name + ' (' + v.lang + ')';
+      voiceSelect.appendChild(opt);
+    });
+    chosenVoice = pickFemaleVoice();
+    if(chosenVoice){
+      const idx = voices.indexOf(chosenVoice);
+      if(idx>=0) voiceSelect.value = String(idx);
+      voiceHint.textContent = 'Using "' + chosenVoice.name + '" — calm and soothing for alerts.';
+    }
+  }
+
+  if('speechSynthesis' in window){
+    populateVoiceList();
+    speechSynthesis.onvoiceschanged = populateVoiceList;
+  } else {
+    voiceHint.textContent = 'Speech synthesis is not supported in this browser.';
+    voiceToggle.checked = false;
+    voiceToggle.disabled = true;
+  }
+
+  voiceSelect.addEventListener('change', () => {
+    if(!('speechSynthesis' in window)) return;
+    chosenVoice = speechSynthesis.getVoices()[parseInt(voiceSelect.value,10)] || null;
+  });
+
+  function speak(text){
+    if(!voiceToggle.checked || !('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if(chosenVoice) u.voice = chosenVoice;
+    u.rate=0.92; u.pitch=1.06; u.volume=1;
+    speechSynthesis.speak(u);
+  }
+
+  testVoiceBtn.addEventListener('click', () => speak("Hello. This is how I will sound when it's time for your bio break."));
+
+  // ─── Notifications ──────────────────────────────────────────────────────────
+  notifyToggle.addEventListener('change', () => {
+    if(notifyToggle.checked && 'Notification' in window && Notification.permission === 'default'){
+      Notification.requestPermission().then(p => { if(p!=='granted') notifyToggle.checked=false; });
+    }
+  });
+
+  let breakNotificationSent = false;
+
+  function notify(title, body){
+    if(!notifyToggle.checked || !('Notification' in window) || Notification.permission!=='granted') return;
+    if(!document.hidden) return;
+    try{ new Notification(title, {body}); }catch(e){}
+  }
+
+  function updateTitle(phase, remaining){
+    if(phase==='STOPPED'){ document.title='Grove — Bio-Break Guardian'; return; }
+    const icon = phase==='ACTIVE' ? '🌳' : phase==='BREAK_DUE' ? '🍂' : '🌿';
+    document.title = icon+' '+fmt(remaining)+' — Grove';
+  }
+
+  // ─── Idle detection ─────────────────────────────────────────────────────────
+  let idleTimer = null;
+  let isIdlePaused = false;
+  let currentPhase = 'STOPPED';
+
+  function armIdleTimer(){
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      const w = getWs();
+      if(idleToggle.checked && currentPhase==='ACTIVE' && !isIdlePaused && w && w.readyState===WebSocket.OPEN){
+        isIdlePaused = true;
+        w.send(JSON.stringify({action:'pause_idle'}));
+      }
+    }, IDLE_TIMEOUT);
+  }
+
+  function onActivity(){
+    const w = getWs();
+    if(isIdlePaused && w && w.readyState===WebSocket.OPEN){
+      isIdlePaused = false;
+      w.send(JSON.stringify({action:'resume_idle'}));
+    }
+    armIdleTimer();
+  }
+
+  ['mousemove','keydown','mousedown','touchstart','wheel'].forEach(e =>
+    window.addEventListener(e, onActivity, {passive:true})
+  );
+  armIdleTimer();
+
+  // ─── Achievement toast ──────────────────────────────────────────────────────
+  function showAchievement(name){
+    const t = document.getElementById('achievementToast');
+    t.innerHTML = '🏆 Achievement Unlocked:<br>' + name;
+    t.style.display = 'block';
+    announceAria('Achievement unlocked: ' + name);
+    setTimeout(() => { t.style.display='none'; }, 4500);
+  }
+
+  // ─── Level-up celebration  (Problem 2) ─────────────────────────────────────
+  const levelUpOverlay = document.getElementById('levelUpOverlay');
+  const levelUpIcon    = document.getElementById('levelUpIcon');
+  const levelUpTitle   = document.getElementById('levelUpTitle');
+  const levelUpSub     = document.getElementById('levelUpSub');
+  const levelUpOkBtn   = document.getElementById('levelUpOkBtn');
+  const levelUpParticles = document.getElementById('levelUpParticles');
+
+  const LEVEL_ICONS = ['','🌱','🌿','🌿','🌸','🌸','🍂✨','🍂✨','🌳','🌳','🌳👑'];
+  const LEVEL_NAMES = ['','Seedling','Young Sapling','Sapling','Budding Tree','Flowering Tree',
+                        'Amber Grove','Golden Grove','Ancient Tree','Elder Tree','Crown of the Forest'];
+
+  function showLevelUp(level){
+    levelUpIcon.textContent  = LEVEL_ICONS[Math.min(level,10)] || '🌳';
+    levelUpTitle.textContent = 'Level ' + level + ' — ' + (LEVEL_NAMES[Math.min(level,10)] || 'Master');
+    levelUpSub.textContent   = 'Your grove has grown stronger. Keep taking your breaks.';
+    levelUpOverlay.style.display = 'flex';
+
+    // Spawn particles
+    levelUpParticles.innerHTML = '';
+    const colors = ['#5c8c63','#8fbf86','#f0c98f','#e8b573','#bcd9a9'];
+    for(let i=0;i<22;i++){
+      const p = document.createElement('div');
+      p.className = 'lvl-particle';
+      p.style.left   = (Math.random()*100)+'%';
+      p.style.top    = (Math.random()*100)+'%';
+      p.style.background = colors[i%colors.length];
+      p.style.setProperty('--px', (Math.random()*120-60)+'px');
+      p.style.setProperty('--py', (Math.random()*120-60)+'px');
+      p.style.animationDelay = (Math.random()*0.4)+'s';
+      levelUpParticles.appendChild(p);
+    }
+
+    speak('Level up! Your grove has reached level ' + level + '. Keep taking your breaks to grow even further.');
+    announceAria('Level up! Reached level ' + level + ': ' + (LEVEL_NAMES[Math.min(level,10)] || ''));
+
+    // Auto-dismiss after 7s
+    const auto = setTimeout(() => { levelUpOverlay.style.display='none'; }, 7000);
+    levelUpOkBtn.onclick = () => { clearTimeout(auto); levelUpOverlay.style.display='none'; };
+  }
+
+  // ─── Overlay helpers ────────────────────────────────────────────────────────
+  let overlayShown = null;
+  let lastSnoozeCount = 0;
+
+  function refreshSnoozeUI(n){
+    lastSnoozeCount = n||0;
+    const left = MAX_SNOOZES - lastSnoozeCount;
+    if(left<=0){
+      snoozeBtn.disabled = true;
+      snoozeBtn.textContent = 'No snoozes left';
+      snoozeHint.textContent = "You've used all "+MAX_SNOOZES+" snoozes for this break — time to step away.";
+    } else {
+      snoozeBtn.disabled = false;
+      snoozeBtn.textContent = 'Snooze 2 min';
+      snoozeHint.textContent = lastSnoozeCount>0
+        ? ('Snoozed '+lastSnoozeCount+'/'+MAX_SNOOZES+' times — the grove keeps wilting the longer you wait.')
+        : (MAX_SNOOZES+' snoozes available, but each one lets the grove wilt a little further.');
+    }
+  }
+
+  function showDangerOverlay(snoozeCount){
+    refreshSnoozeUI(snoozeCount);
+    if(overlayShown==='danger') return;
+    overlayShown = 'danger';
+    overlayCard.className = 'danger';
+    overlayIcon.textContent = '🍂';
+    overlayTitle.textContent = 'The grove is wilting';
+    overlayBody.textContent  = '30 minutes have passed. Without rest, your body and the grove both keep wilting.';
+    acceptBreakBtn.textContent = 'I accept — starting my break';
+    acceptBreakBtn.onclick = onAcceptBreak;
+    snoozeRow.style.display = 'flex';
+    overlay.style.display = 'flex';
+    speak("Attention. Thirty minutes have passed. Your body and the grove both need a short bio break now. Stand up, move around, and drink some water. Tap accept when you're ready.");
+    announceAria("Break time. 30 minutes of focus complete. Please stand up and take a short bio break.");
+    if(!breakNotificationSent){
+      notify('The grove is wilting 🍂','Thirty minutes are up — stand up and take a bio break.');
+      breakNotificationSent = true;
+    }
+  }
+
+  function showWelcomeOverlay(){
+    overlayShown = 'safe';
+    overlayCard.className = 'safe';
+    overlayIcon.textContent = '🌿';
+    overlayTitle.textContent = 'The grove is safe again';
+    overlayBody.textContent  = 'Your ten minutes are complete. The grove has settled and turned green again — you can come back now.';
+    acceptBreakBtn.textContent = 'Back to the grove';
+    acceptBreakBtn.onclick = hideOverlay;
+    snoozeRow.style.display = 'none';
+    snoozeHint.textContent = '';
+    overlay.style.display = 'flex';
+    speak("The grove is safe again. Your ten minute break is complete. You can come back now, gently and calmly.");
+    notify('The grove is safe again 🌿','Break done — welcome back.');
+    announceAria("Break complete. Welcome back to your focus session.");
+    setTimeout(() => { if(overlayShown==='safe') hideOverlay(); }, 9000);
+  }
+
+  function hideOverlay(){
+    overlay.style.display = 'none';
+    overlayShown = null;
+  }
+
+  function onAcceptBreak(){
+    hideOverlay();
+    const w = getWs();
+    if(w && w.readyState===WebSocket.OPEN) w.send(JSON.stringify({action:'accept_break'}));
+  }
+
+  snoozeBtn.addEventListener('click', () => {
+    const w = getWs();
+    if(!w || w.readyState!==WebSocket.OPEN || snoozeBtn.disabled) return;
+    w.send(JSON.stringify({action:'snooze'}));
+  });
+
+  // ─── Tree level evolution ───────────────────────────────────────────────────
+  let _lastLevel = 0;
+
+  function updateTreeLevel(level){
+    const prev = _lastLevel;
+    if(level === prev) return;
+    _lastLevel = level;
+
+    // Scale canopy — 4% per level
+    const scale = 1 + Math.min(level-1,9)*0.04;
+    const cg = document.getElementById('canopyGroup');
+    cg.style.transform = `scale(${scale.toFixed(2)})`;
+    cg.style.transformOrigin = '170px 200px';
+
+    lvl2Extra.style.display   = level>=2 ? '' : 'none';
+    lvl4Flowers.style.display = level>=4 ? '' : 'none';
+    lvl6Golden.style.display  = level>=6 ? '' : 'none';
+
+    if(level>=8) updateFireflyCount(level>=10?32:24, level>=10);
+
+    levelBadge.textContent = level>1 ? (LEVEL_ICONS[Math.min(level,10)]+' Lv.'+level) : '';
+
+    // Problem 2: fire level-up celebration when level increases (not on first load)
+    if(prev>0 && level>prev) showLevelUp(level);
+  }
+
+  // ─── Mood & health helpers ──────────────────────────────────────────────────
+  function applyMood(phase, overdueSeconds, paused){
+    let mood='resting';
+    if(phase==='ACTIVE') mood = paused?'idle':'thriving';
+    else if(phase==='BREAK_DUE') mood = (overdueSeconds||0)>300?'critical':'danger';
+    else if(phase==='ON_BREAK') mood = 'warning';
+    healthState.setAttribute('data-mood', mood);
+    return mood;
+  }
+
+  function updateHealthUI(mood){
+    const [icon, label] = HEALTH_ICONS[mood] || ['🌱',''];
+    healthIcon.textContent = icon;
+    healthIcon.setAttribute('aria-label', label);
+  }
+
+  // ─── Sub-renderers ──────────────────────────────────────────────────────────
+  function renderStopped(){
+    timeReadout.textContent = '--:--';
+    phaseLabel.textContent  = 'SET A START TIME';
+    statusText.textContent  = 'Grove is resting';
+    statusDot.style.background = COLORS.resting;
+    startBtn.disabled = false;
+    stopBtn.disabled  = true;
+    hideOverlay();
+  }
+
+  function renderActive(state){
+    timeReadout.textContent = fmt(state.remaining_seconds||0);
+    breakNotificationSent = false;
+    if(state.paused){
+      phaseLabel.textContent = 'PAUSED — STEP BACK IN';
+      statusText.textContent = 'Grove is waiting for you';
+      statusDot.style.background = COLORS.idle;
+    } else {
+      phaseLabel.textContent = 'FOCUS — BIO BREAK IN';
+      statusText.textContent = 'Grove is thriving';
+      statusDot.style.background = COLORS.thriving;
+    }
+  }
+
+  function renderBreakDue(state){
+    timeReadout.textContent = '00:00';
+    phaseLabel.textContent  = 'TIME FOR A BIO BREAK';
+    statusText.textContent  = 'Grove needs you to pause';
+    statusDot.style.background = COLORS.danger;
+    showDangerOverlay(state.snooze_count);
+    if(overlayShown==='danger') refreshSnoozeUI(state.snooze_count);
+  }
+
+  function renderOnBreak(state){
+    timeReadout.textContent = fmt(state.remaining_seconds||0);
+    phaseLabel.textContent  = 'ON BREAK — RETURN IN';
+    statusText.textContent  = 'Grove is recovering';
+    statusDot.style.background = COLORS.warning;
+  }
+
+  function updateTreeHealth(phase, health, overdueSeconds, paused){
+    let mood;
+    if(phase==='ACTIVE'){
+      mood = health>=80?'thriving':health>=60?'warning':health>=40?'danger':'critical';
+      healthState.setAttribute('data-mood', mood);
+      ringProgress.style.stroke = COLORS[mood];
+    } else {
+      mood = applyMood(phase, overdueSeconds, paused);
+      ringProgress.style.stroke = phase==='ON_BREAK'   ? COLORS.warning
+                                : phase==='BREAK_DUE'  ? COLORS.danger
+                                : COLORS.thriving;
+    }
+    updateHealthUI(mood);
+  }
+
+  // ─── Main render ────────────────────────────────────────────────────────────
+  function render(state){
+    const phase     = state.phase;
+    const remaining = state.remaining_seconds || 0;
+    const total     = state.phase_duration || 1;
+    const frac      = Math.min(1, Math.max(0, remaining/total));
+    const health    = state.health_score ?? 100;
+
+    currentPhase = phase;
+    ringProgress.style.strokeDashoffset = RING_CIRC * (1 - frac);
+    cycleCount.textContent = state.cycles_completed || 0;
+    statHealth.textContent = health;
+
+    updateTitle(phase, phase==='BREAK_DUE' ? 0 : remaining);
+    updateTreeHealth(phase, health, state.overdue_seconds, state.paused);
+
+    if(phase==='STOPPED')   { renderStopped();         return; }
+    startBtn.disabled = true;
+    stopBtn.disabled  = false;
+    if(phase==='ACTIVE')    { renderActive(state);     return; }
+    if(phase==='BREAK_DUE') { renderBreakDue(state);   return; }
+    if(phase==='ON_BREAK')  { renderOnBreak(state);    return; }
+  }
+
+  // ─── Stats polling ──────────────────────────────────────────────────────────
+  let knownAchievements = [];
+
+  function fetchStats(host){
+    const proto = location.protocol==='https:' ? 'https' : 'http';
+    fetch(proto+'://'+host+':8765/stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if(!data) return;
+
+        const cycles  = data.cycles_completed_today    ?? 0;
+        const snoozes = data.snoozes_used_today        ?? 0;
+        const idle    = data.idle_paused_minutes_today ?? 0;
+        const level   = data.tree_level                ?? 1;
+        const xp      = data.tree_xp                  ?? 0;
+        const health  = data.health_score              ?? 100;
+
+        statBreaks.textContent  = cycles;
+        statSnoozes.textContent = snoozes;
+        statIdle.textContent    = idle;
+        statLevel.textContent   = level;
+        statXP.textContent      = xp;
+        statHealth.textContent  = health;
+
+        // Today summary card
+        sumCycles.textContent  = cycles;
+        sumFocus.innerHTML     = (cycles * 30) + ' <span>min</span>';
+        sumBreaks.textContent  = cycles;
+        sumSnoozes.textContent = snoozes;
+
+        // Problem 3: streak display
+        if(data.current_streak != null){
+          streakDays.textContent = data.current_streak;
+          streakBest.textContent = data.best_streak ?? data.current_streak;
+          streakBanner.classList.toggle('visible', data.current_streak >= 1);
+        }
+
+        updateTreeLevel(level);
+
+        // Achievements
+        const container = document.getElementById('achievementContainer');
+        if(data.achievements && data.achievements.length){
+          const isFirstLoad = knownAchievements.length === 0;
+          data.achievements.forEach(a => {
+            if(!knownAchievements.includes(a)){
+              if(!isFirstLoad) showAchievement(a);
+              knownAchievements.push(a);
+            }
+          });
+          container.innerHTML='';
+          data.achievements.forEach(a => {
+            const item = document.createElement('div');
+            item.className = 'achievement-item';
+            item.textContent = '🏆 '+a;
+            container.appendChild(item);
+          });
+        } else {
+          container.textContent = 'No achievements yet.';
+        }
+      })
+      .catch(err => console.error('Stats fetch failed:', err));
+  }
+
+  // ─── WebSocket  (Problem 5: exponential backoff) ────────────────────────────
+  const HOST = location.hostname || 'localhost';
+  let reconnectTimer  = null;
+  let reconnectDelay  = 2000; // starts at 2s, doubles each failure, caps at 30s
+  let lastEvent       = null;
+
+  function connect(){
+    const proto = location.protocol==='https:' ? 'wss' : 'ws';
+    ws = new WebSocket(proto+'://'+HOST+':8765/ws');
+
+    ws.onopen = () => {
+      reconnectDelay = 2000; // reset on successful connection
+    };
+
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data);
+      if(msg.type==='state'){
+        render(msg.data);
+        if(msg.event==='WELCOME_BACK' && lastEvent!=='WELCOME_BACK'){
+          showWelcomeOverlay();
+          fetchStats(HOST);
+        }
+        if(msg.event==='STOPPED') hideOverlay();
+        lastEvent = msg.event || null;
+      }
+    };
+
+    ws.onclose = () => {
+      if(!reconnectTimer){
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = null;
+          connect();
+        }, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000); // exponential backoff
+      }
+    };
+
+    ws.onerror = () => {};
+  }
+
+  connect();
+  fetchStats(HOST);
+  const statsInterval = setInterval(() => fetchStats(HOST), 15000);
+
+  // ─── Control buttons ────────────────────────────────────────────────────────
+  startBtn.addEventListener('click', () => {
+    const w = getWs();
+    if(!w || w.readyState!==WebSocket.OPEN) return;
+    w.send(JSON.stringify({action:'start', clock_label:startTimeInput.value}));
+    if('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+  });
+
+  stopBtn.addEventListener('click', () => {
+    const w = getWs();
+    if(!w || w.readyState!==WebSocket.OPEN) return;
+    w.send(JSON.stringify({action:'stop'}));
+  });
+
+})();
+</script>
+</body>
+</html>
